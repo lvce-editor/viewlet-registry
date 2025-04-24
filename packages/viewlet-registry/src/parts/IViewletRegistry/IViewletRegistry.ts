@@ -8,6 +8,10 @@ export interface Fn<T> {
   (state: T, ...args: readonly any[]): T | Promise<T>
 }
 
+export interface DiffModule<T> {
+  (oldState: T, newState: T): boolean
+}
+
 export interface IViewletRegistry<T> {
   readonly get: (uid: number) => StateTuple<T>
   readonly set: (uid: number, oldState: T, newState: T) => void
@@ -15,4 +19,5 @@ export interface IViewletRegistry<T> {
   readonly getKeys: () => readonly number[]
   readonly clear: () => void
   readonly wrapCommand: (fn: Fn<T>) => WrappedFn
+  readonly diff: (uid: number, modules: readonly DiffModule<T>[], numbers: readonly number[]) => readonly number[]
 }

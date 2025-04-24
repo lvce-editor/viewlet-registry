@@ -1,4 +1,4 @@
-import type { Fn, IViewletRegistry, WrappedFn } from '../IViewletRegistry/IViewletRegistry.ts'
+import type { DiffModule, Fn, IViewletRegistry, WrappedFn } from '../IViewletRegistry/IViewletRegistry.ts'
 import type { StateTuple } from '../StateTuple/StateTuple.ts'
 
 export const create = <T>(): IViewletRegistry<T> => {
@@ -35,6 +35,18 @@ export const create = <T>(): IViewletRegistry<T> => {
         states[uid] = { oldState: latest.oldState, newState: newerState }
       }
       return wrapped
+    },
+
+    diff(uid: number, modules: readonly DiffModule<T>[], numbers: readonly number[]): readonly number[] {
+      const { oldState, newState } = states[uid]
+      const diffResult: number[] = []
+      for (let i = 0; i < modules.length; i++) {
+        const fn = modules[i]
+        if (!fn(oldState, newState)) {
+          diffResult.push(numbers[i])
+        }
+      }
+      return diffResult
     },
   }
 }
