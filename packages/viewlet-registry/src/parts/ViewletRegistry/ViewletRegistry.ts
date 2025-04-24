@@ -1,4 +1,4 @@
-import type { IViewletRegistry } from '../IViewletRegistry/IViewletRegistry.ts'
+import type { Fn, IViewletRegistry, WrappedFn } from '../IViewletRegistry/IViewletRegistry.ts'
 import type { StateTuple } from '../StateTuple/StateTuple.ts'
 
 export const create = <T>(): IViewletRegistry<T> => {
@@ -23,6 +23,18 @@ export const create = <T>(): IViewletRegistry<T> => {
       for (const key of Object.keys(states)) {
         delete states[key]
       }
+    },
+    wrapCommand(fn: Fn<T>): WrappedFn {
+      const wrapped = async (uid: number, ...args: readonly any[]): Promise<void> => {
+        const { newState } = states[uid]
+        const newerState = await fn(newState, ...args)
+        if (newState === newerState) {
+          return
+        }
+        const latest = states[uid]
+        states[uid] = { oldState: latest.oldState, newState: newerState }
+      }
+      return wrapped
     },
   }
 }
