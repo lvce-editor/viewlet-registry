@@ -1,0 +1,37 @@
+{
+  "name": "@lvce-editor/viewlet-registry-monorepo",
+  "version": "0.0.0-dev",
+  "description": "Viewlet Registry Monorepo",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lvce-editor/viewlet-registry.git"
+  },
+  "license": "MIT",
+  "author": "Lvce Editor",
+  "type": "module",
+  "scripts": {
+    "build": "node packages/build/src/build.js",
+    "build:watch": "",
+    "format": "prettier --write .",
+    "lint": "eslint .",
+    "postinstall": "lerna bootstrap --ci",
+    "test": "lerna run test",
+    "type-check": "tsc -b"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 130
+  },
+  "devDependencies": {
+    "@lerna/legacy-package-management": "^8.2.2",
+    "@lvce-editor/eslint-config": "^1.38.0",
+    "eslint": "^9.25.1",
+    "lerna": "^8.2.2",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
