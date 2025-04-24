@@ -10,12 +10,11 @@ const getActualContent = (content) => {
 export const generateApiTypes = async () => {
   const ext = process.platform === 'win32' ? '' : ''
   const bundleGeneratorPath = join(root, 'packages', 'build', 'node_modules', '.bin', 'dts-bundle-generator' + ext)
-  await execa(bundleGeneratorPath, ['-o', '../../.tmp/dist/index.d.ts', 'src/viewletRegistryMain.ts'], {
-    cwd: join(root, 'packages', 'viewlet-registry-worker'),
+  await execa(bundleGeneratorPath, ['-o', '../../.tmp/dist/dist/index.d.ts', 'src/viewletRegistryMain.ts'], {
+    cwd: join(root, 'packages', 'viewlet-registry'),
     reject: false,
-    stdio: 'inherit',
   })
-  const content = await readFile(join(root, '.tmp', 'dist', 'index.d.ts'), 'utf8')
+  const content = await readFile(join(root, '.tmp', 'dist', 'dist', 'index.d.ts'), 'utf8')
   const actual = getActualContent(content)
-  await writeFile(join(root, '.tmp', 'dist', 'index.d.ts'), actual)
+  await writeFile(join(root, '.tmp', 'dist', 'dist', 'index.d.ts'), actual)
 }
