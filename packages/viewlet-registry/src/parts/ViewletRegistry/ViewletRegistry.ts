@@ -50,3 +50,7 @@ export const create = <T>(): IViewletRegistry<T> => {
     },
   }
 }
+
+export const terminate = (): void => {
+  globalThis.close()
+}
