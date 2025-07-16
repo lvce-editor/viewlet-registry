@@ -4,6 +4,10 @@ export interface WrappedFn {
   (uid: number, ...args: readonly any[]): Promise<void>
 }
 
+export interface WrappedGetter {
+  (uid: number, ...args: readonly any[]): any
+}
+
 export interface Fn<T> {
   (state: T, ...args: readonly any[]): T | Promise<T>
 }
@@ -19,5 +23,6 @@ export interface IViewletRegistry<T> {
   readonly getKeys: () => readonly number[]
   readonly clear: () => void
   readonly wrapCommand: (fn: Fn<T>) => WrappedFn
+  readonly wrapGetter: (fn: Fn<T>) => WrappedGetter
   readonly diff: (uid: number, modules: readonly DiffModule<T>[], numbers: readonly number[]) => readonly number[]
 }
