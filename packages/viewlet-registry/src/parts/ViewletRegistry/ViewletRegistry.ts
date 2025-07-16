@@ -36,7 +36,13 @@ export const create = <T>(): IViewletRegistry<T> => {
       }
       return wrapped
     },
-
+    wrapGetter(fn: Fn<T>): WrappedFn {
+      const wrapped = (uid: number, ...args: readonly any[]): any => {
+        const { newState } = states[uid]
+        return fn(newState, ...args)
+      }
+      return wrapped
+    },
     diff(uid: number, modules: readonly DiffModule<T>[], numbers: readonly number[]): readonly number[] {
       const { oldState, newState } = states[uid]
       const diffResult: number[] = []
