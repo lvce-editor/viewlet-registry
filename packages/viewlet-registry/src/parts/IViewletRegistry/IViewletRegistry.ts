@@ -8,6 +8,10 @@ export interface WrappedGetter {
   (uid: number, ...args: readonly any[]): any
 }
 
+export interface Getter<T> {
+  (state: T, ...args: readonly any[]): any
+}
+
 export interface Fn<T> {
   (state: T, ...args: readonly any[]): T | Promise<T>
 }
@@ -26,5 +30,5 @@ export interface IViewletRegistry<T> {
   readonly registerCommands: (commandMap: any) => void
   readonly set: (uid: number, oldState: T, newState: T) => void
   readonly wrapCommand: (fn: Fn<T>) => WrappedFn
-  readonly wrapGetter: (fn: Fn<T>) => WrappedGetter
+  readonly wrapGetter: (fn: Getter<T>) => WrappedGetter
 }
