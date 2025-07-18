@@ -18,7 +18,6 @@ export interface DiffModule<T> {
 
 export interface IViewletRegistry<T> {
   readonly clear: () => void
-  readonly commandMapRef: any
   readonly diff: (uid: number, modules: readonly DiffModule<T>[], numbers: readonly number[]) => readonly number[]
   readonly dispose: (uid: number) => void
   readonly get: (uid: number) => StateTuple<T>
