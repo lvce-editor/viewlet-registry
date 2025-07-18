@@ -17,12 +17,15 @@ export interface DiffModule<T> {
 }
 
 export interface IViewletRegistry<T> {
-  readonly get: (uid: number) => StateTuple<T>
-  readonly set: (uid: number, oldState: T, newState: T) => void
-  readonly dispose: (uid: number) => void
-  readonly getKeys: () => readonly number[]
   readonly clear: () => void
+  readonly commandMapRef: any
+  readonly diff: (uid: number, modules: readonly DiffModule<T>[], numbers: readonly number[]) => readonly number[]
+  readonly dispose: (uid: number) => void
+  readonly get: (uid: number) => StateTuple<T>
+  readonly getCommandIds: () => readonly string[]
+  readonly getKeys: () => readonly number[]
+  readonly registerCommands: (commandMap: any) => void
+  readonly set: (uid: number, oldState: T, newState: T) => void
   readonly wrapCommand: (fn: Fn<T>) => WrappedFn
   readonly wrapGetter: (fn: Fn<T>) => WrappedGetter
-  readonly diff: (uid: number, modules: readonly DiffModule<T>[], numbers: readonly number[]) => readonly number[]
 }
