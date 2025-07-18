@@ -1,9 +1,14 @@
 import type { DiffModule, Fn, IViewletRegistry, WrappedFn } from '../IViewletRegistry/IViewletRegistry.ts'
 import type { StateTuple } from '../StateTuple/StateTuple.ts'
 
+const toCommandId = (key: string): string => {
+  const dotIndex = key.indexOf('.')
+  return key.slice(dotIndex + 1)
+}
+
 export const create = <T>(): IViewletRegistry<T> => {
   const states = Object.create(null)
-
+  const commandMapRef = {}
   return {
     get(uid: number): StateTuple<T> {
       return states[uid]
@@ -53,6 +58,14 @@ export const create = <T>(): IViewletRegistry<T> => {
         }
       }
       return diffResult
+    },
+    getCommandIds(): readonly string[] {
+      const keys = Object.keys(commandMapRef)
+      const ids = keys.map(toCommandId)
+      return ids
+    },
+    registerCommands(commandMap): void {
+      Object.assign(commandMapRef, commandMap)
     },
   }
 }
