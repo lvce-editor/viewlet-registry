@@ -59,12 +59,12 @@ export const create = <T>(): IViewletRegistry<T> => {
       }
       return diffResult
     },
-    getCommandIds() {
+    getCommandIds(): readonly string[] {
       const keys = Object.keys(commandMapRef)
       const ids = keys.map(toCommandId)
       return ids
     },
-    registerCommands(commandMap) {
+    registerCommands(commandMap): void {
       Object.assign(commandMapRef, commandMap)
     },
   }
