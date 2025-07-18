@@ -2,7 +2,6 @@
   "compilerOptions": {
     "lib": ["esnext", "WebWorker"],
     "target": "esnext",
-    "checkJs": true,
     "module": "NodeNext",
     "types": ["node"],
     "moduleResolution": "nodenext",
@@ -17,7 +16,8 @@
     "useUnknownInCatchVariables": false,
     "allowImportingTsExtensions": true,
     "forceConsistentCasingInFileNames": true,
-    "noUnusedLocals": true
+    "noUnusedLocals": true,
+    "composite": true
   },
   "include": ["src", "test"]
 }

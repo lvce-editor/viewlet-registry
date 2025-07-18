@@ -8,7 +8,6 @@
     {
       "path": "./packages/viewlet-registry"
     },
-
     {
       "path": "./packages/memory"
     }
