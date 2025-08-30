@@ -43,13 +43,13 @@
     }
   },
   "devDependencies": {
-    "@jest/globals": "^30.0.4",
+    "@jest/globals": "^30.1.1",
     "@lvce-editor/assert": "^1.4.0",
-    "@lvce-editor/rpc": "^4.11.0",
+    "@lvce-editor/rpc": "^4.15.0",
     "@lvce-editor/verror": "^1.7.0",
     "@types/node": "^20.11.24",
-    "jest": "^30.0.4",
-    "ts-jest": "^29.4.0"
+    "jest": "^30.1.1",
+    "ts-jest": "^29.4.1"
   },
   "engines": {
     "node": ">=22"
