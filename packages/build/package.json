@@ -8,14 +8,14 @@
   "license": "MIT",
   "description": "",
   "devDependencies": {
-    "@babel/preset-typescript": "^7.27.1",
+    "@babel/preset-typescript": "^7.28.5",
     "@lvce-editor/verror": "^1.7.0",
-    "@rollup/plugin-babel": "^6.0.4",
-    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-babel": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/node": "^22.14.0",
-    "esbuild": "^0.25.6",
+    "esbuild": "^0.27.0",
     "execa": "^9.6.0",
-    "rollup": "^4.45.1",
+    "rollup": "^4.53.2",
     "dts-bundle-generator": "^9.5.1"
   }
 }
