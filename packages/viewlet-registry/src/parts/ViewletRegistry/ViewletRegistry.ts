@@ -7,7 +7,7 @@ const toCommandId = (key: string): string => {
 }
 
 export const create = <T>(): IViewletRegistry<T> => {
-  const states = Object.create(null)
+  const states: Record<number | string, StateTuple<T>> = Object.create(null)
   const commandMapRef = {}
   return {
     get(uid: number): StateTuple<T> {
@@ -31,9 +31,9 @@ export const create = <T>(): IViewletRegistry<T> => {
     },
     wrapCommand(fn: Fn<T>): WrappedFn {
       const wrapped = async (uid: number, ...args: readonly any[]): Promise<void> => {
-        const { newState } = states[uid]
+        const { oldState, newState } = states[uid]
         const newerState = await fn(newState, ...args)
-        if (newState === newerState) {
+        if (oldState === newerState || newState === newerState) {
           return
         }
         const latest = states[uid]
