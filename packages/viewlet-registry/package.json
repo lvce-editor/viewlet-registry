@@ -44,12 +44,12 @@
   },
   "devDependencies": {
     "@jest/globals": "^30.2.0",
-    "@lvce-editor/assert": "^1.4.0",
-    "@lvce-editor/rpc": "^4.20.0",
+    "@lvce-editor/assert": "^1.5.1",
+    "@lvce-editor/rpc": "^5.4.0",
     "@lvce-editor/verror": "^1.7.0",
     "@types/node": "^24.10.1",
     "jest": "^30.2.0",
-    "ts-jest": "^29.4.5"
+    "ts-jest": "^29.4.6"
   },
   "engines": {
     "node": ">=22"

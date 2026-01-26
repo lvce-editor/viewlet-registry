@@ -10,28 +10,47 @@ export const create = <T>(): IViewletRegistry<T> => {
   const states: Record<number | string, StateTuple<T>> = Object.create(null)
   const commandMapRef = {}
   return {
-    get(uid: number): StateTuple<T> {
-      return states[uid]
+    clear(): void {
+      for (const key of Object.keys(states)) {
+        delete states[key]
+      }
     },
-    set(uid, oldState: T, newState: T): void {
-      states[uid] = { oldState, newState }
+    diff(uid: number, modules: readonly DiffModule<T>[], numbers: readonly number[]): readonly number[] {
+      const { newState, oldState } = states[uid]
+      const diffResult: number[] = []
+      for (let i = 0; i < modules.length; i++) {
+        const fn = modules[i]
+        if (!fn(oldState, newState)) {
+          diffResult.push(numbers[i])
+        }
+      }
+      return diffResult
     },
     dispose(uid: number): void {
       delete states[uid]
+    },
+    get(uid: number): StateTuple<T> {
+      return states[uid]
+    },
+    getCommandIds(): readonly string[] {
+      const keys = Object.keys(commandMapRef)
+      const ids = keys.map(toCommandId)
+      return ids
     },
     getKeys(): readonly number[] {
       return Object.keys(states).map((key) => {
         return Number.parseInt(key)
       })
     },
-    clear(): void {
-      for (const key of Object.keys(states)) {
-        delete states[key]
-      }
+    registerCommands(commandMap): void {
+      Object.assign(commandMapRef, commandMap)
+    },
+    set(uid, oldState: T, newState: T): void {
+      states[uid] = { newState, oldState }
     },
     wrapCommand(fn: Fn<T>): WrappedFn {
       const wrapped = async (uid: number, ...args: readonly any[]): Promise<void> => {
-        const { oldState, newState } = states[uid]
+        const { newState, oldState } = states[uid]
         const newerState = await fn(newState, ...args)
         if (oldState === newerState || newState === newerState) {
           return
@@ -39,8 +58,8 @@ export const create = <T>(): IViewletRegistry<T> => {
         const latestOld = states[uid]
         const latestNew = { ...latestOld.newState, ...newerState }
         states[uid] = {
-          oldState: latestOld.oldState,
           newState: latestNew,
+          oldState: latestOld.oldState,
         }
       }
       return wrapped
@@ -51,25 +70,6 @@ export const create = <T>(): IViewletRegistry<T> => {
         return fn(newState, ...args)
       }
       return wrapped
-    },
-    diff(uid: number, modules: readonly DiffModule<T>[], numbers: readonly number[]): readonly number[] {
-      const { oldState, newState } = states[uid]
-      const diffResult: number[] = []
-      for (let i = 0; i < modules.length; i++) {
-        const fn = modules[i]
-        if (!fn(oldState, newState)) {
-          diffResult.push(numbers[i])
-        }
-      }
-      return diffResult
-    },
-    getCommandIds(): readonly string[] {
-      const keys = Object.keys(commandMapRef)
-      const ids = keys.map(toCommandId)
-      return ids
-    },
-    registerCommands(commandMap): void {
-      Object.assign(commandMapRef, commandMap)
     },
   }
 }
