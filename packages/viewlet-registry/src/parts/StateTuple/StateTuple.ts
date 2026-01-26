@@ -1,4 +1,4 @@
 export interface StateTuple<T> {
-  readonly oldState: T
   readonly newState: T
+  readonly oldState: T
 }
