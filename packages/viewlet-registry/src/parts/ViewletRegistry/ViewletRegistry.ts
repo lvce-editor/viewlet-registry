@@ -55,8 +55,12 @@ export const create = <T>(): IViewletRegistry<T> => {
         if (oldState === newerState || newState === newerState) {
           return
         }
-        const latest = states[uid]
-        states[uid] = { newState: newerState, oldState: latest.oldState }
+        const latestOld = states[uid]
+        const latestNew = { ...latestOld.newState, ...newerState }
+        states[uid] = {
+          newState: latestNew,
+          oldState: latestOld.oldState,
+        }
       }
       return wrapped
     },
