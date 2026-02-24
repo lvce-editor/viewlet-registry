@@ -8,6 +8,19 @@ export interface WrappedGetter {
   (uid: number, ...args: readonly any[]): any
 }
 
+export interface WrappedLoadContent {
+  (uid: number, ...args: readonly any[]): any
+}
+
+export interface LoadContentResult<T> {
+  readonly error: undefined
+  readonly state: T
+}
+
+export interface LoadContentFunction<T> {
+  (state: T, ...args: readonly any[]): Promise<LoadContentResult<T>>
+}
+
 export interface Getter<T> {
   (state: T, ...args: readonly any[]): any
 }
@@ -31,4 +44,5 @@ export interface IViewletRegistry<T> {
   readonly set: (uid: number, oldState: T, newState: T) => void
   readonly wrapCommand: (fn: Fn<T>) => WrappedFn
   readonly wrapGetter: (fn: Getter<T>) => WrappedGetter
+  readonly wrapLoadContent: (fn: LoadContentFunction<T>) => WrappedLoadContent
 }

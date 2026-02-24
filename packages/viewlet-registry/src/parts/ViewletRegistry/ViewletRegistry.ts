@@ -1,4 +1,11 @@
-import type { DiffModule, Fn, IViewletRegistry, WrappedFn } from '../IViewletRegistry/IViewletRegistry.ts'
+import type {
+  DiffModule,
+  Fn,
+  IViewletRegistry,
+  LoadContentFunction,
+  WrappedFn,
+  WrappedLoadContent,
+} from '../IViewletRegistry/IViewletRegistry.ts'
 import type { StateTuple } from '../StateTuple/StateTuple.ts'
 
 const toCommandId = (key: string): string => {
@@ -68,6 +75,28 @@ export const create = <T>(): IViewletRegistry<T> => {
       const wrapped = (uid: number, ...args: readonly any[]): any => {
         const { newState } = states[uid]
         return fn(newState, ...args)
+      }
+      return wrapped
+    },
+    wrapLoadContent(fn: LoadContentFunction<T>): WrappedLoadContent {
+      const wrapped = async (uid: number, ...args: readonly any[]): Promise<any> => {
+        const { newState, oldState } = states[uid]
+        const result = await fn(newState, ...args)
+        const { error, state } = result
+        if (oldState === state || newState === state) {
+          return {
+            error,
+          }
+        }
+        const latestOld = states[uid]
+        const latestNew = { ...latestOld.newState, ...state }
+        states[uid] = {
+          newState: latestNew,
+          oldState: latestOld.oldState,
+        }
+        return {
+          error,
+        }
       }
       return wrapped
     },
