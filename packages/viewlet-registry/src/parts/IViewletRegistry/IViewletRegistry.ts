@@ -41,7 +41,7 @@ export interface IViewletRegistry<T> {
   readonly getCommandIds: () => readonly string[]
   readonly getKeys: () => readonly number[]
   readonly registerCommands: (commandMap: any) => void
-  readonly set: (uid: number, oldState: T, newState: T) => void
+  readonly set: (uid: number, oldState: T, newState: T, scheduledState?: T) => void
   readonly wrapCommand: (fn: Fn<T>) => WrappedFn
   readonly wrapGetter: (fn: Getter<T>) => WrappedGetter
   readonly wrapLoadContent: (fn: LoadContentFunction<T>) => WrappedLoadContent
