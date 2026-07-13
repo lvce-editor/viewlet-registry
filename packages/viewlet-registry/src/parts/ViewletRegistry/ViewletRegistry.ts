@@ -1,8 +1,11 @@
 import type {
+  AsyncCommand,
+  AsyncCommandContext,
   DiffModule,
   Fn,
   IViewletRegistry,
   LoadContentFunction,
+  StateUpdater,
   WrappedFn,
   WrappedLoadContent,
 } from '../IViewletRegistry/IViewletRegistry.ts'
@@ -16,6 +19,20 @@ const toCommandId = (key: string): string => {
 export const create = <T>(): IViewletRegistry<T> => {
   const states: Record<number | string, StateTuple<T>> = Object.create(null)
   const commandMapRef = {}
+
+  const updateState = (uid: number, updater: StateUpdater<T>): Promise<T> => {
+    const current = states[uid]
+    const updatedState = updater(current.newState)
+    if (updatedState !== current.newState) {
+      states[uid] = {
+        newState: updatedState,
+        oldState: current.oldState,
+        scheduledState: updatedState,
+      }
+    }
+    return Promise.resolve(updatedState)
+  }
+
   return {
     clear(): void {
       for (const key of Object.keys(states)) {
@@ -52,6 +69,16 @@ export const create = <T>(): IViewletRegistry<T> => {
     },
     set(uid, oldState: T, newState: T, scheduledState?: T): void {
       states[uid] = { newState, oldState, scheduledState: scheduledState ?? newState }
+    },
+    wrapAsyncCommand(fn: AsyncCommand<T>): WrappedFn {
+      const wrapped = async (uid: number, ...args: readonly any[]): Promise<void> => {
+        const context: AsyncCommandContext<T> = {
+          getState: () => states[uid].newState,
+          updateState: (updater) => updateState(uid, updater),
+        }
+        await fn(context, ...args)
+      }
+      return wrapped
     },
     wrapCommand(fn: Fn<T>): WrappedFn {
       const wrapped = async (uid: number, ...args: readonly any[]): Promise<void> => {
