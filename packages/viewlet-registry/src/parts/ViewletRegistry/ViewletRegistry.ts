@@ -166,7 +166,6 @@ export const create = <T>(): IViewletRegistry<T> => {
     },
     wrapSerialCommand(fn: Fn<T>): WrappedFn {
       const wrapped = async (uid: number, ...args: readonly any[]): Promise<void> => {
-        const generation = getGeneration(uid)
         const previous = commandQueues.get(uid) || Promise.resolve()
         const run = async (): Promise<void> => {
           try {
@@ -174,9 +173,10 @@ export const create = <T>(): IViewletRegistry<T> => {
           } catch {
             // The previous caller receives its error; later commands must still run.
           }
-          if (!isCurrentGeneration(uid, generation)) {
+          if (!states[uid]) {
             return
           }
+          const generation = getGeneration(uid)
           const { newState, oldState } = states[uid]
           const newerState = await fn(newState, ...args)
           if (oldState === newerState || newState === newerState) {

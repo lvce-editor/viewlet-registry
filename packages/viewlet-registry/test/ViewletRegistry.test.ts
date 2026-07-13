@@ -200,7 +200,7 @@ test('wrapSerialCommand should continue the queue after a command error', async 
   expect(registry.get(1).newState.values).toEqual(['second'])
 })
 
-test('wrapSerialCommand should not run queued commands for a replacement view', async () => {
+test('wrapSerialCommand should run queued commands against the current view lifecycle', async () => {
   const registry = ViewletRegistry.create<TestState>()
   const state = createState()
   registry.set(1, state, state)
@@ -228,5 +228,8 @@ test('wrapSerialCommand should not run queued commands for a replacement view', 
   continueFirstCommand()
   await Promise.all([firstCommand, secondCommand])
 
-  expect(registry.get(1).newState).toBe(replacementState)
+  expect(registry.get(1).newState).toEqual({
+    count: 1,
+    values: ['replacement', 'second'],
+  })
 })
