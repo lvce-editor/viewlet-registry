@@ -12,6 +12,19 @@ export interface WrappedLoadContent {
   (uid: number, ...args: readonly any[]): any
 }
 
+export interface StateUpdater<T> {
+  (state: T): T
+}
+
+export interface AsyncCommandContext<T> {
+  readonly getState: () => T
+  readonly updateState: (updater: StateUpdater<T>) => Promise<T>
+}
+
+export interface AsyncCommand<T> {
+  (context: AsyncCommandContext<T>, ...args: readonly any[]): Promise<void>
+}
+
 export interface LoadContentResult<T> {
   readonly error: undefined
   readonly state: T
@@ -42,6 +55,7 @@ export interface IViewletRegistry<T> {
   readonly getKeys: () => readonly number[]
   readonly registerCommands: (commandMap: any) => void
   readonly set: (uid: number, oldState: T, newState: T, scheduledState?: T) => void
+  readonly wrapAsyncCommand: (fn: AsyncCommand<T>) => WrappedFn
   readonly wrapCommand: (fn: Fn<T>) => WrappedFn
   readonly wrapGetter: (fn: Getter<T>) => WrappedGetter
   readonly wrapLoadContent: (fn: LoadContentFunction<T>) => WrappedLoadContent
