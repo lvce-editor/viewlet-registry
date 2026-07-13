@@ -17,10 +17,20 @@ const toCommandId = (key: string): string => {
 }
 
 export const create = <T>(): IViewletRegistry<T> => {
+  const generations: Record<number | string, number> = Object.create(null)
   const states: Record<number | string, StateTuple<T>> = Object.create(null)
   const commandMapRef = {}
 
-  const updateState = (uid: number, updater: StateUpdater<T>): Promise<T> => {
+  const getGeneration = (uid: number): number => generations[uid] || 0
+
+  const isCurrentGeneration = (uid: number, generation: number): boolean => {
+    return states[uid] !== undefined && getGeneration(uid) === generation
+  }
+
+  const updateState = (uid: number, generation: number, fallbackState: T, updater: StateUpdater<T>): Promise<T> => {
+    if (!isCurrentGeneration(uid, generation)) {
+      return Promise.resolve(fallbackState)
+    }
     const current = states[uid]
     const updatedState = updater(current.newState)
     if (updatedState !== current.newState) {
@@ -68,13 +78,27 @@ export const create = <T>(): IViewletRegistry<T> => {
       Object.assign(commandMapRef, commandMap)
     },
     set(uid, oldState: T, newState: T, scheduledState?: T): void {
+      const current = states[uid]
+      if (!current || (oldState === newState && newState !== current.newState)) {
+        generations[uid] = getGeneration(uid) + 1
+      }
       states[uid] = { newState, oldState, scheduledState: scheduledState ?? newState }
     },
     wrapAsyncCommand(fn: AsyncCommand<T>): WrappedFn {
       const wrapped = async (uid: number, ...args: readonly any[]): Promise<void> => {
+        const generation = getGeneration(uid)
+        let latestState = states[uid].newState
         const context: AsyncCommandContext<T> = {
-          getState: () => states[uid].newState,
-          updateState: (updater) => updateState(uid, updater),
+          getState: () => {
+            if (isCurrentGeneration(uid, generation)) {
+              latestState = states[uid].newState
+            }
+            return latestState
+          },
+          updateState: async (updater) => {
+            latestState = await updateState(uid, generation, latestState, updater)
+            return latestState
+          },
         }
         await fn(context, ...args)
       }
@@ -82,9 +106,13 @@ export const create = <T>(): IViewletRegistry<T> => {
     },
     wrapCommand(fn: Fn<T>): WrappedFn {
       const wrapped = async (uid: number, ...args: readonly any[]): Promise<void> => {
+        const generation = getGeneration(uid)
         const { newState, oldState } = states[uid]
         const newerState = await fn(newState, ...args)
         if (oldState === newerState || newState === newerState) {
+          return
+        }
+        if (!isCurrentGeneration(uid, generation)) {
           return
         }
         const latestOld = states[uid]
@@ -106,10 +134,16 @@ export const create = <T>(): IViewletRegistry<T> => {
     },
     wrapLoadContent(fn: LoadContentFunction<T>): WrappedLoadContent {
       const wrapped = async (uid: number, ...args: readonly any[]): Promise<any> => {
+        const generation = getGeneration(uid)
         const { newState, oldState } = states[uid]
         const result = await fn(newState, ...args)
         const { error, state } = result
         if (oldState === state || newState === state) {
+          return {
+            error,
+          }
+        }
+        if (!isCurrentGeneration(uid, generation)) {
           return {
             error,
           }

@@ -88,6 +88,59 @@ test('wrapAsyncCommand should preserve the current state when the updater return
   expect(registry.get(1).newState).toBe(state)
 })
 
+test('wrapAsyncCommand should not update a replacement view with the same uid', async () => {
+  const registry = ViewletRegistry.create<TestState>()
+  const state = createState()
+  registry.set(1, state, state)
+  const { promise: commandStarted, resolve: notifyCommandStarted } = Promise.withResolvers<void>()
+  const { promise: waitForReplacement, resolve: continueCommand } = Promise.withResolvers<void>()
+  const command = registry.wrapAsyncCommand(async (context) => {
+    notifyCommandStarted()
+    await waitForReplacement
+    await context.updateState((latestState) => ({
+      ...latestState,
+      count: 42,
+    }))
+  })
+
+  const pendingCommand = command(1)
+  await commandStarted
+  const replacementState: TestState = {
+    count: 1,
+    values: ['replacement'],
+  }
+  registry.set(1, replacementState, replacementState)
+  continueCommand()
+  await pendingCommand
+
+  expect(registry.get(1).newState).toBe(replacementState)
+})
+
+test('wrapAsyncCommand should continue after the current view is rendered', async () => {
+  const registry = ViewletRegistry.create<TestState>()
+  const state = createState()
+  registry.set(1, state, state)
+  const { promise: commandStarted, resolve: notifyCommandStarted } = Promise.withResolvers<void>()
+  const { promise: waitForRender, resolve: continueCommand } = Promise.withResolvers<void>()
+  const command = registry.wrapAsyncCommand(async (context) => {
+    notifyCommandStarted()
+    await waitForRender
+    await context.updateState((latestState) => ({
+      ...latestState,
+      count: 42,
+    }))
+  })
+
+  const pendingCommand = command(1)
+  await commandStarted
+  const currentState = registry.get(1).newState
+  registry.set(1, currentState, currentState)
+  continueCommand()
+  await pendingCommand
+
+  expect(registry.get(1).newState.count).toBe(42)
+})
+
 test('wrapAsyncCommand should propagate command errors', async () => {
   const registry = ViewletRegistry.create<TestState>()
   const state = createState()
