@@ -59,5 +59,6 @@ export interface IViewletRegistry<T> {
   readonly wrapCommand: (fn: Fn<T>) => WrappedFn
   readonly wrapGetter: (fn: Getter<T>) => WrappedGetter
   readonly wrapLoadContent: (fn: LoadContentFunction<T>) => WrappedLoadContent
+  readonly wrapSerialAsyncCommand: (fn: AsyncCommand<T>) => WrappedFn
   readonly wrapSerialCommand: (fn: Fn<T>) => WrappedFn
 }

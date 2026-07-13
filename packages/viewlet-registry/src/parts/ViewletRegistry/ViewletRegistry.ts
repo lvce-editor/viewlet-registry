@@ -44,6 +44,43 @@ export const create = <T>(): IViewletRegistry<T> => {
     return Promise.resolve(updatedState)
   }
 
+  const createAsyncCommandContext = (uid: number, generation: number): AsyncCommandContext<T> => {
+    let latestState = states[uid].newState
+    return {
+      getState: (): T => {
+        if (isCurrentGeneration(uid, generation)) {
+          latestState = states[uid].newState
+        }
+        return latestState
+      },
+      updateState: async (updater): Promise<T> => {
+        latestState = await updateState(uid, generation, latestState, updater)
+        return latestState
+      },
+    }
+  }
+
+  const enqueueCommand = async (uid: number, command: () => Promise<void>): Promise<void> => {
+    const previous = commandQueues.get(uid) || Promise.resolve()
+    const run = async (): Promise<void> => {
+      try {
+        await previous
+      } catch {
+        // The previous caller receives its error; later commands must still run.
+      }
+      await command()
+    }
+    const current = run()
+    commandQueues.set(uid, current)
+    try {
+      await current
+    } finally {
+      if (commandQueues.get(uid) === current) {
+        commandQueues.delete(uid)
+      }
+    }
+  }
+
   return {
     clear(): void {
       commandQueues.clear()
@@ -90,19 +127,7 @@ export const create = <T>(): IViewletRegistry<T> => {
     wrapAsyncCommand(fn: AsyncCommand<T>): WrappedFn {
       const wrapped = async (uid: number, ...args: readonly any[]): Promise<void> => {
         const generation = getGeneration(uid)
-        let latestState = states[uid].newState
-        const context: AsyncCommandContext<T> = {
-          getState: () => {
-            if (isCurrentGeneration(uid, generation)) {
-              latestState = states[uid].newState
-            }
-            return latestState
-          },
-          updateState: async (updater) => {
-            latestState = await updateState(uid, generation, latestState, updater)
-            return latestState
-          },
-        }
+        const context = createAsyncCommandContext(uid, generation)
         await fn(context, ...args)
       }
       return wrapped
@@ -164,15 +189,22 @@ export const create = <T>(): IViewletRegistry<T> => {
       }
       return wrapped
     },
+    wrapSerialAsyncCommand(fn: AsyncCommand<T>): WrappedFn {
+      const wrapped = async (uid: number, ...args: readonly any[]): Promise<void> => {
+        await enqueueCommand(uid, async () => {
+          if (!states[uid]) {
+            return
+          }
+          const generation = getGeneration(uid)
+          const context = createAsyncCommandContext(uid, generation)
+          await fn(context, ...args)
+        })
+      }
+      return wrapped
+    },
     wrapSerialCommand(fn: Fn<T>): WrappedFn {
       const wrapped = async (uid: number, ...args: readonly any[]): Promise<void> => {
-        const previous = commandQueues.get(uid) || Promise.resolve()
-        const run = async (): Promise<void> => {
-          try {
-            await previous
-          } catch {
-            // The previous caller receives its error; later commands must still run.
-          }
+        await enqueueCommand(uid, async () => {
           if (!states[uid]) {
             return
           }
@@ -192,16 +224,7 @@ export const create = <T>(): IViewletRegistry<T> => {
             oldState: latestOld.oldState,
             scheduledState: latestNew,
           }
-        }
-        const current = run()
-        commandQueues.set(uid, current)
-        try {
-          await current
-        } finally {
-          if (commandQueues.get(uid) === current) {
-            commandQueues.delete(uid)
-          }
-        }
+        })
       }
       return wrapped
     },
