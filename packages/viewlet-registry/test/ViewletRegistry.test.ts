@@ -151,3 +151,82 @@ test('wrapAsyncCommand should propagate command errors', async () => {
 
   await expect(command(1)).rejects.toThrow('command failed')
 })
+
+test('wrapSerialCommand should run commands in invocation order', async () => {
+  const registry = ViewletRegistry.create<TestState>()
+  const state = createState()
+  registry.set(1, state, state)
+  const { promise: firstCommandStarted, resolve: notifyFirstCommandStarted } = Promise.withResolvers<void>()
+  const { promise: waitForFirstCommand, resolve: continueFirstCommand } = Promise.withResolvers<void>()
+  const command = registry.wrapSerialCommand(async (currentState, value: string) => {
+    if (value === 'first') {
+      notifyFirstCommandStarted()
+      await waitForFirstCommand
+    }
+    return {
+      ...currentState,
+      values: [...currentState.values, value],
+    }
+  })
+
+  const firstCommand = command(1, 'first')
+  await firstCommandStarted
+  const secondCommand = command(1, 'second')
+  continueFirstCommand()
+  await Promise.all([firstCommand, secondCommand])
+
+  expect(registry.get(1).newState.values).toEqual(['first', 'second'])
+})
+
+test('wrapSerialCommand should continue the queue after a command error', async () => {
+  const registry = ViewletRegistry.create<TestState>()
+  const state = createState()
+  registry.set(1, state, state)
+  const command = registry.wrapSerialCommand(async (currentState, value: string) => {
+    if (value === 'first') {
+      throw new Error('command failed')
+    }
+    return {
+      ...currentState,
+      values: [...currentState.values, value],
+    }
+  })
+
+  const firstCommand = command(1, 'first')
+  const secondCommand = command(1, 'second')
+  await expect(firstCommand).rejects.toThrow('command failed')
+  await secondCommand
+
+  expect(registry.get(1).newState.values).toEqual(['second'])
+})
+
+test('wrapSerialCommand should not run queued commands for a replacement view', async () => {
+  const registry = ViewletRegistry.create<TestState>()
+  const state = createState()
+  registry.set(1, state, state)
+  const { promise: firstCommandStarted, resolve: notifyFirstCommandStarted } = Promise.withResolvers<void>()
+  const { promise: waitForReplacement, resolve: continueFirstCommand } = Promise.withResolvers<void>()
+  const command = registry.wrapSerialCommand(async (currentState, value: string) => {
+    if (value === 'first') {
+      notifyFirstCommandStarted()
+      await waitForReplacement
+    }
+    return {
+      ...currentState,
+      values: [...currentState.values, value],
+    }
+  })
+
+  const firstCommand = command(1, 'first')
+  await firstCommandStarted
+  const secondCommand = command(1, 'second')
+  const replacementState: TestState = {
+    count: 1,
+    values: ['replacement'],
+  }
+  registry.set(1, replacementState, replacementState)
+  continueFirstCommand()
+  await Promise.all([firstCommand, secondCommand])
+
+  expect(registry.get(1).newState).toBe(replacementState)
+})

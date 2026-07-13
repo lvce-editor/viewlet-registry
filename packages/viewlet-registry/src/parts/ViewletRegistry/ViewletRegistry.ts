@@ -17,6 +17,7 @@ const toCommandId = (key: string): string => {
 }
 
 export const create = <T>(): IViewletRegistry<T> => {
+  const commandQueues = new Map<number, Promise<void>>()
   const generations: Record<number | string, number> = Object.create(null)
   const states: Record<number | string, StateTuple<T>> = Object.create(null)
   const commandMapRef = {}
@@ -45,6 +46,7 @@ export const create = <T>(): IViewletRegistry<T> => {
 
   return {
     clear(): void {
+      commandQueues.clear()
       for (const key of Object.keys(states)) {
         delete states[key]
       }
@@ -61,6 +63,7 @@ export const create = <T>(): IViewletRegistry<T> => {
       return diffResult
     },
     dispose(uid: number): void {
+      commandQueues.delete(uid)
       delete states[uid]
     },
     get(uid: number): StateTuple<T> {
@@ -157,6 +160,47 @@ export const create = <T>(): IViewletRegistry<T> => {
         }
         return {
           error,
+        }
+      }
+      return wrapped
+    },
+    wrapSerialCommand(fn: Fn<T>): WrappedFn {
+      const wrapped = async (uid: number, ...args: readonly any[]): Promise<void> => {
+        const generation = getGeneration(uid)
+        const previous = commandQueues.get(uid) || Promise.resolve()
+        const run = async (): Promise<void> => {
+          try {
+            await previous
+          } catch {
+            // The previous caller receives its error; later commands must still run.
+          }
+          if (!isCurrentGeneration(uid, generation)) {
+            return
+          }
+          const { newState, oldState } = states[uid]
+          const newerState = await fn(newState, ...args)
+          if (oldState === newerState || newState === newerState) {
+            return
+          }
+          if (!isCurrentGeneration(uid, generation)) {
+            return
+          }
+          const latestOld = states[uid]
+          const latestNew = { ...latestOld.newState, ...newerState }
+          states[uid] = {
+            newState: latestNew,
+            oldState: latestOld.oldState,
+            scheduledState: latestNew,
+          }
+        }
+        const current = run()
+        commandQueues.set(uid, current)
+        try {
+          await current
+        } finally {
+          if (commandQueues.get(uid) === current) {
+            commandQueues.delete(uid)
+          }
         }
       }
       return wrapped
