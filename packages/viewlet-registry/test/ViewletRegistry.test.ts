@@ -233,3 +233,67 @@ test('wrapSerialCommand should run queued commands against the current view life
     values: ['replacement', 'second'],
   })
 })
+
+test('wrapSerialAsyncCommand should preserve invocation order and the rendered state baseline', async () => {
+  const registry = ViewletRegistry.create<TestState>()
+  const state = createState()
+  registry.set(1, state, state)
+  const { promise: firstCommandStarted, resolve: notifyFirstCommandStarted } = Promise.withResolvers<void>()
+  const { promise: waitForFirstCommand, resolve: continueFirstCommand } = Promise.withResolvers<void>()
+  const command = registry.wrapSerialAsyncCommand(async (context, value: string) => {
+    if (value === 'first') {
+      notifyFirstCommandStarted()
+      await waitForFirstCommand
+    }
+    await context.updateState((currentState) => ({
+      ...currentState,
+      values: [...currentState.values, value],
+    }))
+  })
+
+  const firstCommand = command(1, 'first')
+  await firstCommandStarted
+  const secondCommand = command(1, 'second')
+  continueFirstCommand()
+  await Promise.all([firstCommand, secondCommand])
+
+  expect(registry.get(1)).toEqual({
+    newState: {
+      count: 0,
+      values: ['first', 'second'],
+    },
+    oldState: state,
+    scheduledState: {
+      count: 0,
+      values: ['first', 'second'],
+    },
+  })
+})
+
+test('wrapSerialAsyncCommand should isolate running updates from a replacement view', async () => {
+  const registry = ViewletRegistry.create<TestState>()
+  const state = createState()
+  registry.set(1, state, state)
+  const { promise: commandStarted, resolve: notifyCommandStarted } = Promise.withResolvers<void>()
+  const { promise: waitForReplacement, resolve: continueCommand } = Promise.withResolvers<void>()
+  const command = registry.wrapSerialAsyncCommand(async (context) => {
+    notifyCommandStarted()
+    await waitForReplacement
+    await context.updateState((currentState) => ({
+      ...currentState,
+      count: 42,
+    }))
+  })
+
+  const pendingCommand = command(1)
+  await commandStarted
+  const replacementState: TestState = {
+    count: 1,
+    values: ['replacement'],
+  }
+  registry.set(1, replacementState, replacementState)
+  continueCommand()
+  await pendingCommand
+
+  expect(registry.get(1).newState).toBe(replacementState)
+})
