@@ -9,7 +9,7 @@ const getActualContent = (content) => {
 
 export const generateApiTypes = async () => {
   const ext = process.platform === 'win32' ? '' : ''
-  const bundleGeneratorPath = join(root, 'packages', 'build', 'node_modules', '.bin', 'dts-bundle-generator' + ext)
+  const bundleGeneratorPath = join(root, 'node_modules', '.bin', 'dts-bundle-generator' + ext)
   await execa(bundleGeneratorPath, ['-o', '../../.tmp/dist/dist/index.d.ts', 'src/viewletRegistryMain.ts'], {
     cwd: join(root, 'packages', 'viewlet-registry'),
     reject: false,
