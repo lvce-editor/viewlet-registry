@@ -20,7 +20,7 @@ const getContent = (absolutePath) => {
   return readFile(absolutePath, 'utf8')
 }
 
-export const computeHash = (contents) => {
+const computeHash = (contents) => {
   const hash = createHash('sha1')
   if (Array.isArray(contents)) {
     for (const content of contents) {

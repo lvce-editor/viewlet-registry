@@ -1,0 +1,21 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/*.js"],
+      "project": ["*.js", "scripts/*.js"]
+    },
+    "packages/build": {
+      "project": ["src/**/*.js"],
+      "ignoreDependencies": ["dts-bundle-generator"]
+    },
+    "packages/memory": {
+      "entry": ["src/measureMemory.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/viewlet-registry": {
+      "entry": ["src/viewletRegistryMain.ts", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"]
+    }
+  }
+}

@@ -4,7 +4,7 @@ export interface WrappedFn {
   (uid: number, ...args: readonly any[]): Promise<void>
 }
 
-export interface WrappedGetter {
+interface WrappedGetter {
   (uid: number, ...args: readonly any[]): any
 }
 
@@ -25,7 +25,7 @@ export interface AsyncCommand<T> {
   (context: AsyncCommandContext<T>, ...args: readonly any[]): Promise<void>
 }
 
-export interface LoadContentResult<T> {
+interface LoadContentResult<T> {
   readonly error: undefined
   readonly state: T
 }
@@ -34,7 +34,7 @@ export interface LoadContentFunction<T> {
   (state: T, ...args: readonly any[]): Promise<LoadContentResult<T>>
 }
 
-export interface Getter<T> {
+interface Getter<T> {
   (state: T, ...args: readonly any[]): any
 }
 
