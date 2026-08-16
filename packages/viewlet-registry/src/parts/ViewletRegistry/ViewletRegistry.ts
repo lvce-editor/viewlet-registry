@@ -1,10 +1,12 @@
 import type {
   AsyncCommand,
   AsyncCommandContext,
+  DirectEventCommandMap,
   DiffModule,
   Fn,
   IViewletRegistry,
   LoadContentFunction,
+  RequestRender,
   StateUpdater,
   WrappedFn,
   WrappedLoadContent,
@@ -20,7 +22,8 @@ export const create = <T>(): IViewletRegistry<T> => {
   const commandQueues = new Map<number, Promise<void>>()
   const generations: Record<number | string, number> = Object.create(null)
   const states: Record<number | string, StateTuple<T>> = Object.create(null)
-  const commandMapRef = {}
+  const commandMapRef: Record<string, WrappedFn> = Object.create(null)
+  const commandsById: Record<string, WrappedFn> = Object.create(null)
 
   const getGeneration = (uid: number): number => generations[uid] || 0
 
@@ -88,6 +91,18 @@ export const create = <T>(): IViewletRegistry<T> => {
         delete states[key]
       }
     },
+    createDirectEventCommandMap(requestRender: RequestRender): DirectEventCommandMap {
+      return {
+        async 'Viewlet.executeViewletCommand'(uid: number, command: string, ...args: readonly any[]): Promise<void> {
+          const fn = commandsById[command]
+          if (!fn) {
+            throw new Error(`Viewlet command not found: ${command}`)
+          }
+          await fn(uid, ...args)
+          await requestRender(uid)
+        },
+      }
+    },
     diff(uid: number, modules: readonly DiffModule<T>[], numbers: readonly number[]): readonly number[] {
       const { oldState, scheduledState } = states[uid]
       const diffResult: number[] = []
@@ -116,6 +131,9 @@ export const create = <T>(): IViewletRegistry<T> => {
     },
     registerCommands(commandMap): void {
       Object.assign(commandMapRef, commandMap)
+      for (const [key, fn] of Object.entries(commandMap) as readonly [string, WrappedFn][]) {
+        commandsById[toCommandId(key)] = fn
+      }
     },
     set(uid, oldState: T, newState: T, scheduledState?: T): void {
       const current = states[uid]

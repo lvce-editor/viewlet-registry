@@ -1,4 +1,4 @@
-import { expect, test } from '@jest/globals'
+import { expect, jest, test } from '@jest/globals'
 import * as ViewletRegistry from '../src/parts/ViewletRegistry/ViewletRegistry.ts'
 
 interface TestState {
@@ -13,6 +13,44 @@ const createState = (): TestState => ({
 
 test('create', () => {
   expect(ViewletRegistry.create).toBeDefined()
+})
+
+test('createDirectEventCommandMap executes the registered command and requests a render', async () => {
+  const registry = ViewletRegistry.create<TestState>()
+  const command = jest.fn(async (_uid: number, _value: string) => {})
+  const requestRender = jest.fn(async (_uid: number) => {})
+  registry.registerCommands({
+    'Test.handleInput': command,
+  })
+  const directCommandMap = registry.createDirectEventCommandMap(requestRender)
+
+  await directCommandMap['Viewlet.executeViewletCommand'](42, 'handleInput', 'hello')
+
+  expect(command).toHaveBeenCalledWith(42, 'hello')
+  expect(requestRender).toHaveBeenCalledWith(42)
+})
+
+test('createDirectEventCommandMap does not request a render when the command fails', async () => {
+  const registry = ViewletRegistry.create<TestState>()
+  const requestRender = jest.fn(async (_uid: number) => {})
+  registry.registerCommands({
+    'Test.handleInput': async () => {
+      throw new Error('command failed')
+    },
+  })
+  const directCommandMap = registry.createDirectEventCommandMap(requestRender)
+
+  await expect(directCommandMap['Viewlet.executeViewletCommand'](42, 'handleInput')).rejects.toThrow('command failed')
+  expect(requestRender).not.toHaveBeenCalled()
+})
+
+test('createDirectEventCommandMap rejects unknown commands', async () => {
+  const registry = ViewletRegistry.create<TestState>()
+  const requestRender = jest.fn(async (_uid: number) => {})
+  const directCommandMap = registry.createDirectEventCommandMap(requestRender)
+
+  await expect(directCommandMap['Viewlet.executeViewletCommand'](42, 'missing')).rejects.toThrow('Viewlet command not found: missing')
+  expect(requestRender).not.toHaveBeenCalled()
 })
 
 test('wrapAsyncCommand should update state', async () => {

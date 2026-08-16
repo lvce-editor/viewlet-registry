@@ -46,8 +46,17 @@ export interface DiffModule<T> {
   (oldState: T, newState: T): boolean
 }
 
+export interface RequestRender {
+  (uid: number): Promise<void>
+}
+
+export interface DirectEventCommandMap {
+  readonly 'Viewlet.executeViewletCommand': (uid: number, command: string, ...args: readonly any[]) => Promise<void>
+}
+
 export interface IViewletRegistry<T> {
   readonly clear: () => void
+  readonly createDirectEventCommandMap: (requestRender: RequestRender) => DirectEventCommandMap
   readonly diff: (uid: number, modules: readonly DiffModule<T>[], numbers: readonly number[]) => readonly number[]
   readonly dispose: (uid: number) => void
   readonly get: (uid: number) => StateTuple<T>
