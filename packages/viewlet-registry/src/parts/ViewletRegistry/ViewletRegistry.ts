@@ -209,11 +209,11 @@ export const create = <T>(): IViewletRegistry<T> => {
     },
     wrapSerialAsyncCommand(fn: AsyncCommand<T>): WrappedFn {
       const wrapped = async (uid: number, ...args: readonly any[]): Promise<void> => {
+        const generation = getGeneration(uid)
         await enqueueCommand(uid, async () => {
-          if (!states[uid]) {
+          if (!isCurrentGeneration(uid, generation)) {
             return
           }
-          const generation = getGeneration(uid)
           const context = createAsyncCommandContext(uid, generation)
           await fn(context, ...args)
         })
@@ -222,11 +222,11 @@ export const create = <T>(): IViewletRegistry<T> => {
     },
     wrapSerialCommand(fn: Fn<T>): WrappedFn {
       const wrapped = async (uid: number, ...args: readonly any[]): Promise<void> => {
+        const generation = getGeneration(uid)
         await enqueueCommand(uid, async () => {
-          if (!states[uid]) {
+          if (!isCurrentGeneration(uid, generation)) {
             return
           }
-          const generation = getGeneration(uid)
           const { newState, oldState } = states[uid]
           const newerState = await fn(newState, ...args)
           if (oldState === newerState || newState === newerState) {

@@ -49,7 +49,9 @@ test('createDirectEventCommandMap rejects unknown commands', async () => {
   const requestRender = jest.fn(async (_uid: number) => {})
   const directCommandMap = registry.createDirectEventCommandMap(requestRender)
 
-  await expect(directCommandMap['Viewlet.executeViewletCommand'](42, 'missing')).rejects.toThrow('Viewlet command not found: missing')
+  await expect(directCommandMap['Viewlet.executeViewletCommand'](42, 'missing')).rejects.toThrow(
+    'Viewlet command not found: missing',
+  )
   expect(requestRender).not.toHaveBeenCalled()
 })
 
@@ -334,4 +336,41 @@ test('wrapSerialAsyncCommand should isolate running updates from a replacement v
   await pendingCommand
 
   expect(registry.get(1).newState).toBe(replacementState)
+})
+
+test.each([false, true])('queued commands do not run against a recreated uid (async context: %s)', async (asyncContext) => {
+  const registry = ViewletRegistry.create<TestState>()
+  const initial = createState()
+  registry.set(1, initial, initial)
+  const gate = Promise.withResolvers<void>()
+  const started = Promise.withResolvers<void>()
+  const executions: string[] = []
+  const command = asyncContext
+    ? registry.wrapSerialAsyncCommand(async (context, name: string, wait: boolean) => {
+        executions.push(name)
+        if (wait) {
+          started.resolve()
+          await gate.promise
+        }
+        await context.updateState((state) => ({ ...state, count: state.count + 1 }))
+      })
+    : registry.wrapSerialCommand(async (state, name: string, wait: boolean) => {
+        executions.push(name)
+        if (wait) {
+          started.resolve()
+          await gate.promise
+        }
+        return { ...state, count: state.count + 1 }
+      })
+  const running = command(1, 'running', true)
+  await started.promise
+  const stale = command(1, 'stale', false)
+  registry.dispose(1)
+  const recreated = createState()
+  registry.set(1, recreated, recreated)
+  await command(1, 'new', false)
+  gate.resolve()
+  await Promise.all([running, stale])
+  expect(executions).toEqual(['running', 'new'])
+  expect(registry.get(1).newState.count).toBe(1)
 })
