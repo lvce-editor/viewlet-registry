@@ -20,7 +20,7 @@ const toCommandId = (key: string): string => {
 
 export const create = <T>(): IViewletRegistry<T> => {
   const commandQueues = new Map<number, Promise<void>>()
-  const lifecycles: Record<number | string, number> = Object.create(null)
+  const instanceIds: Record<number | string, number> = Object.create(null)
   const generations: Record<number | string, number> = Object.create(null)
   const states: Record<number | string, StateTuple<T>> = Object.create(null)
   const commandMapRef: Record<string, WrappedFn> = Object.create(null)
@@ -139,7 +139,7 @@ export const create = <T>(): IViewletRegistry<T> => {
     set(uid, oldState: T, newState: T, scheduledState?: T): void {
       const current = states[uid]
       if (!current) {
-        lifecycles[uid] = (lifecycles[uid] || 0) + 1
+        instanceIds[uid] = (instanceIds[uid] || 0) + 1
       }
       if (!current || (oldState === newState && newState !== current.newState)) {
         generations[uid] = getGeneration(uid) + 1
@@ -213,9 +213,9 @@ export const create = <T>(): IViewletRegistry<T> => {
     },
     wrapSerialAsyncCommand(fn: AsyncCommand<T>): WrappedFn {
       const wrapped = async (uid: number, ...args: readonly any[]): Promise<void> => {
-        const lifecycle = lifecycles[uid]
+        const instanceId = instanceIds[uid]
         await enqueueCommand(uid, async () => {
-          if (!states[uid] || lifecycles[uid] !== lifecycle) {
+          if (!states[uid] || instanceIds[uid] !== instanceId) {
             return
           }
           const generation = getGeneration(uid)
@@ -227,9 +227,9 @@ export const create = <T>(): IViewletRegistry<T> => {
     },
     wrapSerialCommand(fn: Fn<T>): WrappedFn {
       const wrapped = async (uid: number, ...args: readonly any[]): Promise<void> => {
-        const lifecycle = lifecycles[uid]
+        const instanceId = instanceIds[uid]
         await enqueueCommand(uid, async () => {
-          if (!states[uid] || lifecycles[uid] !== lifecycle) {
+          if (!states[uid] || instanceIds[uid] !== instanceId) {
             return
           }
           const generation = getGeneration(uid)
