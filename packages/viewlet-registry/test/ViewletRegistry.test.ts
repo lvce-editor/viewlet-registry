@@ -338,7 +338,12 @@ test('wrapSerialAsyncCommand should isolate running updates from a replacement v
   expect(registry.get(1).newState).toBe(replacementState)
 })
 
-test.each([false, true])('queued commands do not run against a recreated uid (async context: %s)', async (asyncContext) => {
+test.each([
+  [false, 'dispose'],
+  [true, 'dispose'],
+  [false, 'clear'],
+  [true, 'clear'],
+] as const)('queued commands do not run against a recreated uid (async context: %s, reset: %s)', async (asyncContext, reset) => {
   const registry = ViewletRegistry.create<TestState>()
   const initial = createState()
   registry.set(1, initial, initial)
@@ -365,7 +370,11 @@ test.each([false, true])('queued commands do not run against a recreated uid (as
   const running = command(1, 'running', true)
   await started.promise
   const stale = command(1, 'stale', false)
-  registry.dispose(1)
+  if (reset === 'dispose') {
+    registry.dispose(1)
+  } else {
+    registry.clear()
+  }
   const recreated = createState()
   registry.set(1, recreated, recreated)
   await command(1, 'new', false)
